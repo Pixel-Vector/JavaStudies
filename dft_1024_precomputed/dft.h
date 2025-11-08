@@ -1,44 +1,27 @@
-#ifndef _DFT_H_
-#define _DFT_H_
+#pragma once
 
+#include <ap_axi_sdata.h> // Include this for ap_axis
 #include "hls_stream.h"
-#include <ap_fixed.h> // Include for ap_fixed if you use it
+#include <ap_int.h>
 
-// ----------------------------------------------------------------
-// Config
-// ----------------------------------------------------------------
-
-// Make sure SIZE and DTYPE are defined here
-// This MUST match the design in dft_streaming.cpp
-#define SIZE 1024
-
-// Using float for DTYPE as in your original math.h include
 typedef float DTYPE;
-// Example for fixed-point:
-// typedef ap_fixed<32, 10> DTYPE;
-
-// Number of parallel accumulators (used in .cpp)
+#define SIZE 1024
 #define ACCUM_FACTOR 8
 
-// ----------------------------------------------------------------
-// AXI-Stream Data Type Definition
-// ----------------------------------------------------------------
+// Define a union to easily convert between two floats and a 64-bit integer
+// This is the cleanest way to map our data to the ap_axis .data field
+typedef union {
+    uint64_t u64;    // 64-bit integer view
+    DTYPE    f[2];   // Array of 2 floats view
+} cplx_data_converter;
 
-// A struct to hold one complex sample (real + imag).
-// This will be the data type on our AXI-Stream.
-struct cplx_sample {
-    DTYPE real;
-    DTYPE imag;
-};
+// Define the AXI-Stream packet type
+// It has a 64-bit data payload (for 2 floats)
+// It has no TUSER, TSTRB, or TID (all set to 0)
+typedef ap_axis<64, 0, 0, 0> axi_cplx_sample;
 
-// ----------------------------------------------------------------
-// Function Prototype
-// ----------------------------------------------------------------
-
-// The top-level function signature MUST change to use hls::stream
+// The function signature now uses this new AXI stream type
 void dft(
-    hls::stream<cplx_sample>& stream_in,
-    hls::stream<cplx_sample>& stream_out
+    hls::stream<axi_cplx_sample>& stream_in,
+    hls::stream<axi_cplx_sample>& stream_out
 );
-
-#endif // _DFT_H_
